@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kensho Reset Portal</title>
+  <title>Dan Koe's Reset Portal</title>
   <!-- Firebase Web SDK v10 (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -506,75 +506,142 @@
       .summary p, .summary strong { color: #111; }
     }
 
-    /* Authentication & Profile Styling */
+    /* Redesigned Authentication & Profile Styling */
     .auth-screen {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 36px 20px;
       background:
-        radial-gradient(circle at 50% 30%, rgba(245, 158, 11, .12), transparent 32rem),
-        linear-gradient(180deg, #09090b 0%, #0c0d0f 100%);
+        radial-gradient(circle at 50% 25%, rgba(245, 158, 11, .16), transparent 36rem),
+        radial-gradient(circle at 80% 80%, rgba(96, 165, 250, .06), transparent 28rem),
+        linear-gradient(180deg, #070709 0%, #0c0d10 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
     }
     .auth-card {
-      width: min(440px, 100%);
-      background: rgba(15, 16, 18, .94);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 40px 32px;
-      box-shadow: 0 32px 90px rgba(0, 0, 0, .6);
-      backdrop-filter: blur(20px);
+      width: min(480px, 100%);
+      background: rgba(14, 15, 18, .92);
+      border: 1px solid rgba(245, 158, 11, .25);
+      border-radius: 16px;
+      padding: 44px 36px;
+      box-shadow:
+        0 0 0 1px rgba(245, 158, 11, .08),
+        0 32px 100px rgba(0, 0, 0, .8);
+      backdrop-filter: blur(24px);
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
+      z-index: 1;
     }
-    .auth-card .mark {
-      margin: 0 auto 16px;
-      width: 36px;
-      height: 36px;
+    .auth-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, .08);
+      border: 1px solid rgba(245, 158, 11, .28);
+      color: var(--amber);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .auth-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
     }
     .auth-card h1 {
-      margin: 0 0 8px;
-      font-size: 26px;
-      letter-spacing: -.03em;
+      margin: 0 0 10px;
+      font-size: 30px;
+      line-height: 1.15;
+      letter-spacing: -.04em;
       font-weight: 600;
+      color: var(--text);
     }
-    .auth-card p {
-      margin: 0 0 28px;
+    .auth-card h1 span {
+      background: linear-gradient(135deg, #ffffff 30%, var(--amber) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .auth-card p.subtitle {
+      margin: 0 0 24px;
       color: #9da1ab;
       font-size: 14px;
       line-height: 1.6;
+      max-width: 380px;
+    }
+    .auth-features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+      width: 100%;
+    }
+    .feature-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .03);
+      border: 1px solid rgba(255, 255, 255, .08);
+      color: #c9ccd4;
+      font-size: 12px;
     }
     .btn-google {
       width: 100%;
-      height: 48px;
+      height: 50px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 12px;
       background: #ffffff;
-      color: #111111;
+      color: #0f172a;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      transition: background .2s ease, transform .1s ease;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 650;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+      transition: all .2s ease;
+      cursor: pointer;
     }
     .btn-google:hover {
       background: #f8fafc;
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(245, 158, 11, .18);
     }
     .btn-google svg {
       width: 20px;
       height: 20px;
       min-width: 20px;
-      min-height: 20px;
-      max-width: 20px;
-      max-height: 20px;
-      flex-shrink: 0;
-      display: inline-block;
+    }
+    .auth-footer-note {
+      margin-top: 24px;
+      color: #646874;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
     .user-card {
@@ -692,11 +759,21 @@
   <!-- Auth Screen (Visible when signed out) -->
   <div id="loginScreen" class="auth-screen">
     <div class="auth-card">
-      <span class="mark" aria-hidden="true"></span>
-      <p class="eyebrow" style="color: var(--amber); margin-bottom: 8px;">KENSHO RESET PORTAL</p>
-      <h1>Sign in to start your reset</h1>
-      <p>Your responses, AI clarity analysis, and visual reset map will be saved securely to your private account.</p>
+      <div class="auth-badge">
+        <span class="dot"></span>
+        <span>DAN KOE'S RESET PROTOCOL</span>
+      </div>
       
+      <h1>Fix Your Entire Life <span>in 1 Day</span></h1>
+      
+      <p class="subtitle">A private cybernetic portal to uncover hidden motives, break autopilot patterns, and construct your 1-year operating system.</p>
+      
+      <div class="auth-features">
+        <span class="feature-pill">⚡ Identity Excavation</span>
+        <span class="feature-pill">🎯 Autopilot Interrupts</span>
+        <span class="feature-pill">🗺️ Visual Clarity Map</span>
+      </div>
+
       <button class="btn-google" id="googleLoginBtn">
         <svg viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -714,6 +791,11 @@
         <span>Set your Firebase credentials in <code>firebase-config.js</code> or <code>.env</code>. You can also preview the portal in local test mode below.</span>
         <button class="btn" id="guestModeBtn" style="width: 100%; margin-top: 10px; font-size: 12px;">Continue in Guest Mode (Local Storage)</button>
       </div>
+
+      <div class="auth-footer-note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <span>Private & End-to-End Cloud Persistence</span>
+      </div>
     </div>
   </div>
 
@@ -724,7 +806,7 @@
         <div class="brand">
           <span class="mark" aria-hidden="true"></span>
           <div>
-            <strong>Kensho</strong>
+            <strong>Dan Koe's</strong>
             <p class="eyebrow">Reset Protocol</p>
           </div>
         </div>

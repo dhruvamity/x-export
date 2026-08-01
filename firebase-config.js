@@ -1,4 +1,4 @@
-// Firebase Configuration for Kensho Reset Portal
+// Firebase Configuration for Dan Koe's Reset Portal
 // Replace the values below with your Firebase project configuration from the Firebase Console:
 // Project Settings > General > Your apps > Web app > SDK setup and configuration
 

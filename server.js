@@ -31,7 +31,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Kensho portal running at http://${host}:${port}/index.html`);
+  console.log(`Dan Koe's Reset Portal running at http://${host}:${port}/index.html`);
 });
 
 function loadDotEnv() {
