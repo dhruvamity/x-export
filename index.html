@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kensho Reset Portal</title>
+  <!-- Firebase Web SDK v10 (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -498,12 +503,171 @@
       #map.stage { display: block !important; }
       .content { padding: 0; width: 100%; }
       .map-shell, .summary div { border-color: #ccc; background: white; }
-      .summary p, .summary strong { color: #111; }
+    /* Authentication & Profile Styling */
+    .auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 30%, rgba(245, 158, 11, .12), transparent 32rem),
+        linear-gradient(180deg, #09090b 0%, #0c0d0f 100%);
+    }
+    .auth-card {
+      width: min(460px, 100%);
+      background: rgba(15, 16, 18, .92);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 40px 32px;
+      box-shadow: 0 32px 90px rgba(0, 0, 0, .6);
+      backdrop-filter: blur(20px);
+      text-align: center;
+    }
+    .auth-card .mark {
+      margin: 0 auto 16px;
+      width: 36px;
+      height: 36px;
+    }
+    .auth-card h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      letter-spacing: -.03em;
+      font-weight: 600;
+    }
+    .auth-card p {
+      margin: 0 0 28px;
+      color: #9da1ab;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .btn-google {
+      width: 100%;
+      height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #ffffff;
+      color: #111111;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background .2s ease, transform .1s ease;
+    }
+    .btn-google:hover {
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+    .btn-google svg { width: 18px; height: 18px; }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--amber);
+      background: var(--surface-2);
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .user-details {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+    .user-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .user-email {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-icon {
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      padding: 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-icon:hover {
+      color: var(--red);
+      background: rgba(248, 113, 113, .1);
+    }
+
+    .config-warning {
+      margin-top: 20px;
+      padding: 12px 14px;
+      border: 1px dashed rgba(245, 158, 11, .4);
+      border-radius: 8px;
+      background: rgba(245, 158, 11, .06);
+      font-size: 12px;
+      color: #e2e8f0;
+      text-align: left;
+    }
+    .config-warning strong {
+      color: var(--amber);
+      display: block;
+      margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="app">
+  <!-- Auth Screen (Visible when signed out) -->
+  <div id="loginScreen" class="auth-screen">
+    <div class="auth-card">
+      <span class="mark" aria-hidden="true"></span>
+      <p class="eyebrow" style="color: var(--amber); margin-bottom: 8px;">KENSHO RESET PORTAL</p>
+      <h1>Sign in to start your reset</h1>
+      <p>Your responses, AI clarity analysis, and visual reset map will be saved securely to your private account.</p>
+      
+      <button class="btn-google" id="googleLoginBtn">
+        <svg viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <div id="configWarningBox" class="config-warning" style="display: none;">
+        <strong>Firebase Configuration Required</strong>
+        <span>Set your Firebase credentials in <code>firebase-config.js</code> or <code>.env</code>. You can also preview the portal in local test mode below.</span>
+        <button class="btn" id="guestModeBtn" style="width: 100%; margin-top: 10px; font-size: 12px;">Continue in Guest Mode (Local Storage)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Screen (Visible when authenticated) -->
+  <div class="app" id="appScreen" style="display: none;">
     <aside class="sidebar">
       <div>
         <div class="brand">
@@ -524,6 +688,17 @@
         </nav>
       </div>
       <div class="side-bottom">
+        <div id="userCard" class="user-card" style="display: none;">
+          <img id="userAvatarImg" class="user-avatar" src="" alt="User Avatar" />
+          <div id="userAvatarFallback" class="user-avatar" style="display: none;">U</div>
+          <div class="user-details">
+            <span id="userNameText" class="user-name">User Name</span>
+            <span id="userEmailText" class="user-email">user@example.com</span>
+          </div>
+          <button class="btn-icon" id="sidebarSignOutBtn" title="Sign Out">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </button>
+        </div>
         <div class="progress-card">
           <div class="progress-meta"><span>Completion</span><span id="progressText">0%</span></div>
           <div class="bar" aria-hidden="true"><span id="progressBar"></span></div>
@@ -541,6 +716,7 @@
           <button class="btn" id="saveBtn">Save</button>
           <button class="btn" id="exportBtn">Export JSON</button>
           <button class="btn danger" id="clearBtn">Reset</button>
+          <button class="btn danger" id="signOutBtnTop" style="display: none;">Sign Out</button>
         </div>
       </header>
 
@@ -776,7 +952,212 @@
     let activeStage = "command";
     let aiTimer = 0;
 
-    function loadState() {
+    // Firebase state
+    let firebaseApp = null;
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+    let unsubscribeSnapshot = null;
+    let isGuestMode = false;
+    let cloudSaveTimer = 0;
+
+    function initFirebase() {
+      const cfg = window.FIREBASE_CONFIG;
+      const isPlaceholder = !cfg || !cfg.apiKey || cfg.apiKey === "YOUR_FIREBASE_API_KEY" || !cfg.projectId || cfg.projectId === "YOUR_PROJECT_ID";
+      
+      if (isPlaceholder) {
+        document.getElementById("configWarningBox").style.display = "block";
+        return false;
+      }
+      
+      try {
+        if (window.firebase && !firebase.apps.length) {
+          firebaseApp = firebase.initializeApp(cfg);
+        } else if (window.firebase) {
+          firebaseApp = firebase.app();
+        }
+        if (firebaseApp) {
+          auth = firebase.auth();
+          db = firebase.firestore();
+          return true;
+        }
+      } catch (e) {
+        console.error("Firebase initialization failed:", e);
+        document.getElementById("configWarningBox").style.display = "block";
+      }
+      return false;
+    }
+
+    function initAuth() {
+      const initialized = initFirebase();
+      if (!initialized) return;
+
+      auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        isGuestMode = false;
+        if (user) {
+          document.getElementById("loginScreen").style.display = "none";
+          document.getElementById("appScreen").style.display = "grid";
+          document.getElementById("signOutBtnTop").style.display = "inline-flex";
+          renderUserProfile(user);
+          subscribeToFirestore(user.uid);
+          showToast("Signed in as " + (user.displayName || user.email));
+        } else {
+          if (unsubscribeSnapshot) {
+            unsubscribeSnapshot();
+            unsubscribeSnapshot = null;
+          }
+          document.getElementById("loginScreen").style.display = "flex";
+          document.getElementById("appScreen").style.display = "none";
+          document.getElementById("signOutBtnTop").style.display = "none";
+          document.getElementById("userCard").style.display = "none";
+          state = {};
+          aiState.data = null;
+          renderUserProfile(null);
+        }
+      });
+    }
+
+    function renderUserProfile(user) {
+      const userCard = document.getElementById("userCard");
+      if (!user) {
+        userCard.style.display = "none";
+        return;
+      }
+      userCard.style.display = "flex";
+      const avatarImg = document.getElementById("userAvatarImg");
+      const avatarFallback = document.getElementById("userAvatarFallback");
+      const nameText = document.getElementById("userNameText");
+      const emailText = document.getElementById("userEmailText");
+
+      nameText.textContent = user.displayName || "Protocol Member";
+      emailText.textContent = user.email || "";
+
+      if (user.photoURL) {
+        avatarImg.src = user.photoURL;
+        avatarImg.style.display = "block";
+        avatarFallback.style.display = "none";
+      } else {
+        avatarImg.style.display = "none";
+        avatarFallback.style.display = "flex";
+        avatarFallback.textContent = (user.displayName || user.email || "U").charAt(0).toUpperCase();
+      }
+    }
+
+    async function loginWithGoogle() {
+      if (!auth) {
+        const ok = initFirebase();
+        if (!ok) {
+          showToast("Please configure Firebase credentials first.");
+          return;
+        }
+      }
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+      } catch (err) {
+        console.error("Google Auth error:", err);
+        showToast("Login error: " + err.message);
+      }
+    }
+
+    async function logoutUser() {
+      if (isGuestMode) {
+        isGuestMode = false;
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("appScreen").style.display = "none";
+        showToast("Exited Guest Mode");
+        return;
+      }
+      if (auth) {
+        try {
+          await auth.signOut();
+          showToast("Signed out");
+        } catch (err) {
+          showToast("Sign out error: " + err.message);
+        }
+      }
+    }
+
+    function enableGuestMode() {
+      isGuestMode = true;
+      document.getElementById("loginScreen").style.display = "none";
+      document.getElementById("appScreen").style.display = "grid";
+      document.getElementById("signOutBtnTop").style.display = "inline-flex";
+      loadLocalState();
+      hydrateInputs();
+      updateProgress();
+      renderAiPanels();
+      renderMap();
+      showToast("Entered Guest Mode");
+    }
+
+    function subscribeToFirestore(uid) {
+      if (!db) return;
+      const docRef = db.collection("users").doc(uid).collection("data").doc("resetProtocol");
+      
+      unsubscribeSnapshot = docRef.onSnapshot(
+        (doc) => {
+          if (doc.exists) {
+            const cloudData = doc.data() || {};
+            state = cloudData.state || {};
+            if (cloudData.aiState) {
+              aiState.data = cloudData.aiState;
+              aiState.enabled = true;
+            }
+          } else {
+            saveStateToFirestore();
+          }
+          hydrateInputs();
+          updateProgress();
+          renderAiPanels();
+          renderMap();
+        },
+        (err) => {
+          console.error("Firestore snapshot error:", err);
+        }
+      );
+    }
+
+    function debouncedSaveToCloudOrLocal() {
+      if (isGuestMode || !currentUser || !db) {
+        saveStateToLocalStorage();
+        return;
+      }
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(saveStateToFirestore, 1000);
+    }
+
+    async function saveStateToFirestore() {
+      if (isGuestMode || !currentUser || !db) return;
+      const docRef = db.collection("users").doc(currentUser.uid).collection("data").doc("resetProtocol");
+      try {
+        await docRef.set(
+          {
+            state,
+            aiState: aiState.data || null,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            userEmail: currentUser.email,
+            userName: currentUser.displayName || ""
+          },
+          { merge: true }
+        );
+        showToast("Synced to Cloud");
+      } catch (err) {
+        console.error("Cloud save failed:", err);
+        saveStateToLocalStorage();
+      }
+    }
+
+    function saveStateToLocalStorage() {
+      localStorage.setItem(storeKey, JSON.stringify(state));
+      if (aiState.data) {
+        localStorage.setItem(storeKey + "_ai", JSON.stringify(aiState.data));
+      }
+      showToast("Saved locally");
+    }
+
+    function loadLocalState() {
       try { state = JSON.parse(localStorage.getItem(storeKey) || "{}"); }
       catch { state = {}; }
       try {
@@ -792,10 +1173,13 @@
       document.querySelectorAll("[data-key]").forEach((el) => {
         state[el.dataset.key] = el.value;
       });
-      localStorage.setItem(storeKey, JSON.stringify(state));
+      if (currentUser && db && !isGuestMode) {
+        saveStateToFirestore();
+      } else {
+        saveStateToLocalStorage();
+      }
       updateProgress();
       renderMap();
-      showToast("Saved");
     }
 
     function showToast(message) {
@@ -803,7 +1187,7 @@
       toast.textContent = message;
       toast.classList.add("show");
       clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1500);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1600);
     }
 
     function promptMarkup(item, area = "textarea") {
@@ -834,15 +1218,22 @@
       document.getElementById("excavationPrompts").innerHTML = excavation.map((item) => promptMarkup(item)).join("");
       document.getElementById("interruptPrompts").innerHTML = interrupts.map(interruptMarkup).join("");
       document.getElementById("synthesisPrompts").innerHTML = synthesis.map((item) => promptMarkup(item)).join("");
+      hydrateInputs();
+    }
+
+    function hydrateInputs() {
       document.querySelectorAll("[data-key]").forEach((el) => {
         el.value = state[el.dataset.key] || "";
-        el.addEventListener("input", () => {
-          state[el.dataset.key] = el.value;
-          localStorage.setItem(storeKey, JSON.stringify(state));
-          updateProgress();
-          renderMap();
-          scheduleAiAnalysis();
-        });
+        if (!el._hasInputListener) {
+          el._hasInputListener = true;
+          el.addEventListener("input", () => {
+            state[el.dataset.key] = el.value;
+            updateProgress();
+            renderMap();
+            scheduleAiAnalysis();
+            debouncedSaveToCloudOrLocal();
+          });
+        }
       });
     }
 
@@ -962,7 +1353,7 @@
         if (!response.ok) throw new Error(payload.error || "AI analysis failed");
         aiState.enabled = true;
         aiState.data = payload;
-        try { localStorage.setItem(storeKey + "_ai", JSON.stringify(payload)); } catch {}
+        debouncedSaveToCloudOrLocal();
       } catch (error) {
         aiState.enabled = false;
         aiState.error = error.message;
@@ -1069,15 +1460,20 @@
       showToast("Exported");
     }
 
+    // Navigation & Action Event Listeners
     document.querySelectorAll(".nav button").forEach((button) => {
       button.addEventListener("click", () => setStage(button.dataset.stage));
     });
+    document.getElementById("googleLoginBtn").addEventListener("click", loginWithGoogle);
+    document.getElementById("guestModeBtn").addEventListener("click", enableGuestMode);
+    document.getElementById("sidebarSignOutBtn").addEventListener("click", logoutUser);
+    document.getElementById("signOutBtnTop").addEventListener("click", logoutUser);
     document.getElementById("saveBtn").addEventListener("click", saveState);
     document.getElementById("exportBtn").addEventListener("click", exportJson);
     document.getElementById("refreshMapBtn").addEventListener("click", () => { saveState(); renderMap(); });
     document.getElementById("printBtn").addEventListener("click", () => window.print());
     document.getElementById("clearBtn").addEventListener("click", () => {
-      if (!confirm("Reset all saved answers and data from this browser?")) return;
+      if (!confirm("Reset all saved answers and data?")) return;
       state = {};
       aiState = {
         enabled: false,
@@ -1086,6 +1482,10 @@
         data: null,
         error: ""
       };
+      if (currentUser && db && !isGuestMode) {
+        const docRef = db.collection("users").doc(currentUser.uid).collection("data").doc("resetProtocol");
+        docRef.delete().catch((e) => console.error(e));
+      }
       localStorage.removeItem(storeKey);
       localStorage.removeItem(storeKey + "_ai");
       document.querySelectorAll("[data-key]").forEach((el) => { el.value = ""; });
@@ -1095,11 +1495,10 @@
       showToast("Reset complete");
     });
 
-    loadState();
+    // Initialize application
     hydratePrompts();
-    updateProgress();
-    renderAiPanels();
-    renderMap();
+    initAuth();
+
   </script>
 </body>
 </html>

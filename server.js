@@ -16,6 +16,10 @@ const server = http.createServer(async (req, res) => {
       await handleClarity(req, res);
       return;
     }
+    if (req.method === "GET" && url.pathname === "/firebase-config.js") {
+      serveFirebaseConfig(res);
+      return;
+    }
     if (req.method === "GET" || req.method === "HEAD") {
       serveStatic(url.pathname, req.method, res);
       return;
@@ -265,3 +269,32 @@ function sendText(res, status, text) {
   res.writeHead(status, { "Content-Type": "text/plain; charset=utf-8" });
   res.end(text);
 }
+
+function serveFirebaseConfig(res) {
+  const envConfig = {
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID
+  };
+
+  const hasEnvConfig = envConfig.apiKey && envConfig.projectId;
+  if (hasEnvConfig) {
+    const js = `window.FIREBASE_CONFIG = ${JSON.stringify(envConfig, null, 2)};`;
+    res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+    res.end(js);
+    return;
+  }
+
+  // Fallback to physical firebase-config.js file if present
+  const filePath = path.join(root, "firebase-config.js");
+  if (fs.existsSync(filePath)) {
+    res.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+    fs.createReadStream(filePath).pipe(res);
+  } else {
+    sendText(res, 404, "Firebase configuration file not found");
+  }
+}
+
