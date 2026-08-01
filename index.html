@@ -646,11 +646,45 @@
       font-size: 12px;
       color: #e2e8f0;
       text-align: left;
+      width: 100%;
     }
     .config-warning strong {
       color: var(--amber);
       display: block;
       margin-bottom: 4px;
+    }
+
+    .auth-error-box {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid rgba(248, 113, 113, .35);
+      border-radius: 8px;
+      background: rgba(248, 113, 113, .08);
+      color: #fecaca;
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: left;
+      width: 100%;
+    }
+    .auth-error-box strong {
+      display: block;
+      color: var(--red);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .auth-error-box ol {
+      margin: 6px 0 0;
+      padding-left: 18px;
+    }
+    .auth-error-box code {
+      background: rgba(0, 0, 0, .4);
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #fff;
+    }
+    .auth-error-box a {
+      color: #60a5fa;
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -672,6 +706,8 @@
         </svg>
         <span>Continue with Google</span>
       </button>
+
+      <div id="authErrorBox" class="auth-error-box" style="display: none;"></div>
 
       <div id="configWarningBox" class="config-warning" style="display: none;">
         <strong>Firebase Configuration Required</strong>
@@ -1003,9 +1039,73 @@
       return false;
     }
 
+    function handleAuthError(err) {
+      console.error("Google Auth error:", err);
+      const box = document.getElementById("authErrorBox");
+      if (!box) return;
+
+      box.style.display = "block";
+      const code = err.code || "unknown_error";
+      const message = err.message || String(err);
+      const currentHost = window.location.hostname || "127.0.0.1";
+      const currentOrigin = window.location.origin;
+
+      if (code === "auth/unauthorized-domain") {
+        box.innerHTML = `
+          <strong>Unauthorized Domain (${escapeHtml(currentHost)})</strong>
+          <span>Firebase rejected authentication because <code>${escapeHtml(currentOrigin)}</code> is not in your project's Authorized Domains list.</span>
+          <ol>
+            ${currentHost === "127.0.0.1" ? `<li><strong>Quick Fix:</strong> Access portal via <a href="http://localhost:8000/index.html">http://localhost:8000/index.html</a> instead.</li>` : ""}
+            <li>Go to <a href="https://console.firebase.google.com/u/0/project/${encodeURIComponent(window.FIREBASE_CONFIG ? window.FIREBASE_CONFIG.projectId : '')}/authentication/settings" target="_blank" rel="noopener">Firebase Console &gt; Auth &gt; Settings &gt; Authorized domains</a>.</li>
+            <li>Click <strong>Add domain</strong> and enter <code>${escapeHtml(currentHost)}</code>.</li>
+          </ol>
+        `;
+      } else if (code === "auth/operation-not-allowed") {
+        box.innerHTML = `
+          <strong>Google Sign-In Disabled</strong>
+          <span>Google authentication is not enabled in your Firebase project.</span>
+          <ol>
+            <li>Go to <a href="https://console.firebase.google.com/u/0/project/${encodeURIComponent(window.FIREBASE_CONFIG ? window.FIREBASE_CONFIG.projectId : '')}/authentication/providers" target="_blank" rel="noopener">Firebase Console &gt; Auth &gt; Sign-in method</a>.</li>
+            <li>Click <strong>Google</strong>, toggle <strong>Enable</strong>, choose a <strong>Project support email</strong>, and click <strong>Save</strong>.</li>
+          </ol>
+        `;
+      } else if (code === "auth/popup-blocked") {
+        box.innerHTML = `
+          <strong>Popup Blocked by Browser</strong>
+          <span>Your browser blocked the popup. Please allow popups or try redirect sign-in.</span>
+          <button class="btn" style="margin-top: 8px; width: 100%; font-size: 12px;" onclick="loginWithRedirect()">Try Redirect Login</button>
+        `;
+      } else if (code === "auth/popup-closed-by-user") {
+        box.innerHTML = `
+          <strong>Sign-In Cancelled</strong>
+          <span>The authentication popup was closed before completion. Please try again.</span>
+        `;
+      } else if (code === "auth/invalid-api-key") {
+        box.innerHTML = `
+          <strong>Invalid Firebase API Key</strong>
+          <span>Your <code>FIREBASE_API_KEY</code> appears invalid. Check Project Settings in Firebase Console.</span>
+        `;
+      } else {
+        box.innerHTML = `
+          <strong>Authentication Error (${escapeHtml(code)})</strong>
+          <span>${escapeHtml(message)}</span>
+        `;
+      }
+    }
+
     function initAuth() {
       const initialized = initFirebase();
       if (!initialized) return;
+
+      if (auth.getRedirectResult) {
+        auth.getRedirectResult().then((result) => {
+          if (result && result.user) {
+            showToast("Signed in via redirect");
+          }
+        }).catch((err) => {
+          handleAuthError(err);
+        });
+      }
 
       auth.onAuthStateChanged((user) => {
         currentUser = user;
@@ -1060,6 +1160,9 @@
     }
 
     async function loginWithGoogle() {
+      const errBox = document.getElementById("authErrorBox");
+      if (errBox) errBox.style.display = "none";
+
       if (!auth) {
         const ok = initFirebase();
         if (!ok) {
@@ -1069,10 +1172,22 @@
       }
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
         await auth.signInWithPopup(provider);
       } catch (err) {
-        console.error("Google Auth error:", err);
-        showToast("Login error: " + err.message);
+        handleAuthError(err);
+      }
+    }
+
+    async function loginWithRedirect() {
+      const errBox = document.getElementById("authErrorBox");
+      if (errBox) errBox.style.display = "none";
+      if (!auth) return;
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithRedirect(provider);
+      } catch (err) {
+        handleAuthError(err);
       }
     }
 
