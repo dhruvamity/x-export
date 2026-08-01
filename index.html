@@ -503,6 +503,9 @@
       #map.stage { display: block !important; }
       .content { padding: 0; width: 100%; }
       .map-shell, .summary div { border-color: #ccc; background: white; }
+      .summary p, .summary strong { color: #111; }
+    }
+
     /* Authentication & Profile Styling */
     .auth-screen {
       min-height: 100vh;
@@ -515,14 +518,17 @@
         linear-gradient(180deg, #09090b 0%, #0c0d0f 100%);
     }
     .auth-card {
-      width: min(460px, 100%);
-      background: rgba(15, 16, 18, .92);
+      width: min(440px, 100%);
+      background: rgba(15, 16, 18, .94);
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 40px 32px;
       box-shadow: 0 32px 90px rgba(0, 0, 0, .6);
       backdrop-filter: blur(20px);
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .auth-card .mark {
       margin: 0 auto 16px;
@@ -560,7 +566,16 @@
       background: #f8fafc;
       transform: translateY(-1px);
     }
-    .btn-google svg { width: 18px; height: 18px; }
+    .btn-google svg {
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      min-height: 20px;
+      max-width: 20px;
+      max-height: 20px;
+      flex-shrink: 0;
+      display: inline-block;
+    }
 
     .user-card {
       display: flex;
