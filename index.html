@@ -1355,40 +1355,56 @@
 
     function subscribeToFirestore(uid) {
       if (!db) return;
-      const docRef = db.collection("users").doc(uid).collection("data").doc("resetProtocol");
-      
+      const docRef = db.collection("users").doc(uid);
+      const legacyRef = db.collection("users").doc(uid).collection("data").doc("resetProtocol");
+
+      const processDocData = (docData) => {
+        if (!docData) return;
+        const cloudState = docData.resetProtocol || docData.state || {};
+        const localData = getLocalStateData();
+        let merged = Object.assign({}, localData);
+
+        Object.keys(cloudState).forEach((key) => {
+          if (cloudState[key] && String(cloudState[key]).trim().length > 0) {
+            merged[key] = cloudState[key];
+          }
+        });
+
+        if (docData.aiState) {
+          aiState.data = docData.aiState;
+          aiState.enabled = true;
+        }
+
+        state = merged;
+        saveStateToLocalStorage(false);
+        hydrateInputs(true);
+        updateProgress();
+        renderAiPanels();
+        renderMap();
+        updateSyncStatus('cloud');
+      };
+
       unsubscribeSnapshot = docRef.onSnapshot(
         (doc) => {
-          const localData = getLocalStateData();
-          let merged = Object.assign({}, localData);
-
           if (doc.exists) {
-            const cloudData = doc.data() || {};
-            const cloudState = cloudData.state || {};
-            
-            Object.keys(cloudState).forEach((key) => {
-              if (cloudState[key] && cloudState[key].trim().length > 0) {
-                merged[key] = cloudState[key];
-              } else if (!merged[key]) {
-                merged[key] = cloudState[key];
+            processDocData(doc.data());
+          } else {
+            legacyRef.get().then((legacyDoc) => {
+              if (legacyDoc.exists) {
+                processDocData(legacyDoc.data());
+              } else {
+                saveStateToFirestore();
               }
+            }).catch(() => {
+              saveStateToFirestore();
             });
-
-            if (cloudData.aiState) {
-              aiState.data = cloudData.aiState;
-              aiState.enabled = true;
-            }
           }
-          state = merged;
-          saveStateToLocalStorage(false);
-          hydrateInputs(true);
-          updateProgress();
-          renderAiPanels();
-          renderMap();
-          updateSyncStatus('cloud');
         },
         (err) => {
           console.error("Firestore snapshot error:", err);
+          if (err.code === "permission-denied") {
+            showToast("Firestore Rule Notice: Publish read/write rules in Firebase Console");
+          }
           updateSyncStatus('local');
         }
       );
@@ -1403,7 +1419,7 @@
         return;
       }
       clearTimeout(cloudSaveTimer);
-      cloudSaveTimer = setTimeout(saveStateToFirestore, 600);
+      cloudSaveTimer = setTimeout(saveStateToFirestore, 500);
     }
 
     async function saveStateToFirestore() {
@@ -1411,21 +1427,23 @@
         updateSyncStatus('local');
         return;
       }
-      const docRef = db.collection("users").doc(currentUser.uid).collection("data").doc("resetProtocol");
+      const docRef = db.collection("users").doc(currentUser.uid);
       try {
-        await docRef.set(
-          {
-            state,
-            aiState: aiState.data || null,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            userEmail: currentUser.email,
-            userName: currentUser.displayName || ""
-          },
-          { merge: true }
-        );
+        const payload = {
+          resetProtocol: state,
+          state: state,
+          aiState: aiState.data || null,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          userEmail: currentUser.email || "",
+          userName: currentUser.displayName || ""
+        };
+        await docRef.set(payload, { merge: true });
         updateSyncStatus('cloud');
       } catch (err) {
         console.error("Cloud save failed:", err);
+        if (err.code === "permission-denied") {
+          showToast("Firestore Permission Denied - check Firebase Console Rules");
+        }
         saveStateToLocalStorage(false);
         updateSyncStatus('local');
       }
