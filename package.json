@@ -2,7 +2,6 @@
   "name": "x-export",
   "version": "1.0.0",
   "description": "Kensho Reset Portal - One-Day Life Reset Protocol",
-  "main": "index.html",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
