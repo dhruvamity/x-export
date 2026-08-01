@@ -753,6 +753,32 @@
       color: #60a5fa;
       text-decoration: underline;
     }
+
+    .sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(52, 211, 153, .08);
+      border: 1px solid rgba(52, 211, 153, .25);
+      color: var(--green);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      transition: all .2s ease;
+    }
+    .sync-badge.saving {
+      background: rgba(245, 158, 11, .08);
+      border-color: rgba(245, 158, 11, .3);
+      color: var(--amber);
+    }
+    .sync-badge.local {
+      background: rgba(96, 165, 250, .08);
+      border-color: rgba(96, 165, 250, .3);
+      color: var(--blue);
+    }
   </style>
 </head>
 <body>
@@ -846,7 +872,7 @@
           <p id="stageSubtitle">A private one-day portal for turning dissonance into a playable direction.</p>
         </div>
         <div class="top-actions">
-          <button class="btn" id="saveBtn">Save</button>
+          <div id="syncStatusBadge" class="sync-badge"><span>☁️ Synced to Cloud</span></div>
           <button class="btn" id="exportBtn">Export JSON</button>
           <button class="btn danger" id="clearBtn">Reset</button>
           <button class="btn danger" id="signOutBtnTop" style="display: none;">Sign Out</button>
@@ -1175,7 +1201,21 @@
       }
     }
 
+    function updateSyncStatus(mode) {
+      const badge = document.getElementById("syncStatusBadge");
+      if (!badge) return;
+      badge.className = "sync-badge " + (mode || "");
+      if (mode === "saving") {
+        badge.innerHTML = "<span>⏳ Saving...</span>";
+      } else if (mode === "local") {
+        badge.innerHTML = "<span>💾 Saved to Browser</span>";
+      } else {
+        badge.innerHTML = "<span>☁️ Synced to Cloud</span>";
+      }
+    }
+
     function initAuth() {
+      loadLocalState();
       const initialized = initFirebase();
       if (!initialized) return;
 
@@ -1208,9 +1248,9 @@
           document.getElementById("appScreen").style.display = "none";
           document.getElementById("signOutBtnTop").style.display = "none";
           document.getElementById("userCard").style.display = "none";
-          state = {};
-          aiState.data = null;
+          loadLocalState();
           renderUserProfile(null);
+          updateSyncStatus('local');
         }
       });
     }
@@ -1297,11 +1337,20 @@
       document.getElementById("appScreen").style.display = "grid";
       document.getElementById("signOutBtnTop").style.display = "inline-flex";
       loadLocalState();
-      hydrateInputs();
+      hydrateInputs(false);
       updateProgress();
       renderAiPanels();
       renderMap();
+      updateSyncStatus('local');
       showToast("Entered Guest Mode");
+    }
+
+    function getLocalStateData() {
+      try {
+        return JSON.parse(localStorage.getItem(storeKey) || "{}");
+      } catch {
+        return {};
+      }
     }
 
     function subscribeToFirestore(uid) {
@@ -1310,38 +1359,58 @@
       
       unsubscribeSnapshot = docRef.onSnapshot(
         (doc) => {
+          const localData = getLocalStateData();
+          let merged = Object.assign({}, localData);
+
           if (doc.exists) {
             const cloudData = doc.data() || {};
-            state = cloudData.state || {};
+            const cloudState = cloudData.state || {};
+            
+            Object.keys(cloudState).forEach((key) => {
+              if (cloudState[key] && cloudState[key].trim().length > 0) {
+                merged[key] = cloudState[key];
+              } else if (!merged[key]) {
+                merged[key] = cloudState[key];
+              }
+            });
+
             if (cloudData.aiState) {
               aiState.data = cloudData.aiState;
               aiState.enabled = true;
             }
-          } else {
-            saveStateToFirestore();
           }
-          hydrateInputs();
+          state = merged;
+          saveStateToLocalStorage(false);
+          hydrateInputs(true);
           updateProgress();
           renderAiPanels();
           renderMap();
+          updateSyncStatus('cloud');
         },
         (err) => {
           console.error("Firestore snapshot error:", err);
+          updateSyncStatus('local');
         }
       );
     }
 
     function debouncedSaveToCloudOrLocal() {
+      saveStateToLocalStorage(false);
+      updateSyncStatus('saving');
+
       if (isGuestMode || !currentUser || !db) {
-        saveStateToLocalStorage();
+        setTimeout(() => updateSyncStatus('local'), 300);
         return;
       }
       clearTimeout(cloudSaveTimer);
-      cloudSaveTimer = setTimeout(saveStateToFirestore, 1000);
+      cloudSaveTimer = setTimeout(saveStateToFirestore, 600);
     }
 
     async function saveStateToFirestore() {
-      if (isGuestMode || !currentUser || !db) return;
+      if (isGuestMode || !currentUser || !db) {
+        updateSyncStatus('local');
+        return;
+      }
       const docRef = db.collection("users").doc(currentUser.uid).collection("data").doc("resetProtocol");
       try {
         await docRef.set(
@@ -1354,24 +1423,28 @@
           },
           { merge: true }
         );
-        showToast("Synced to Cloud");
+        updateSyncStatus('cloud');
       } catch (err) {
         console.error("Cloud save failed:", err);
-        saveStateToLocalStorage();
+        saveStateToLocalStorage(false);
+        updateSyncStatus('local');
       }
     }
 
-    function saveStateToLocalStorage() {
-      localStorage.setItem(storeKey, JSON.stringify(state));
-      if (aiState.data) {
-        localStorage.setItem(storeKey + "_ai", JSON.stringify(aiState.data));
+    function saveStateToLocalStorage(showToastAlert = false) {
+      try {
+        localStorage.setItem(storeKey, JSON.stringify(state));
+        if (aiState.data) {
+          localStorage.setItem(storeKey + "_ai", JSON.stringify(aiState.data));
+        }
+        if (showToastAlert) showToast("Saved to browser");
+      } catch (e) {
+        console.error("Local storage error:", e);
       }
-      showToast("Saved locally");
     }
 
     function loadLocalState() {
-      try { state = JSON.parse(localStorage.getItem(storeKey) || "{}"); }
-      catch { state = {}; }
+      state = getLocalStateData();
       try {
         const savedAi = localStorage.getItem(storeKey + "_ai");
         if (savedAi) {
@@ -1385,11 +1458,7 @@
       document.querySelectorAll("[data-key]").forEach((el) => {
         state[el.dataset.key] = el.value;
       });
-      if (currentUser && db && !isGuestMode) {
-        saveStateToFirestore();
-      } else {
-        saveStateToLocalStorage();
-      }
+      debouncedSaveToCloudOrLocal();
       updateProgress();
       renderMap();
     }
@@ -1680,7 +1749,6 @@
     document.getElementById("guestModeBtn").addEventListener("click", enableGuestMode);
     document.getElementById("sidebarSignOutBtn").addEventListener("click", logoutUser);
     document.getElementById("signOutBtnTop").addEventListener("click", logoutUser);
-    document.getElementById("saveBtn").addEventListener("click", saveState);
     document.getElementById("exportBtn").addEventListener("click", exportJson);
     document.getElementById("refreshMapBtn").addEventListener("click", () => { saveState(); renderMap(); });
     document.getElementById("printBtn").addEventListener("click", () => window.print());
