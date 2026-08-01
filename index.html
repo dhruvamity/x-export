@@ -1342,6 +1342,7 @@
       renderAiPanels();
       renderMap();
       updateSyncStatus('local');
+      restoreNavigationState();
       showToast("Entered Guest Mode");
     }
 
@@ -1382,6 +1383,7 @@
         renderAiPanels();
         renderMap();
         updateSyncStatus('cloud');
+        restoreNavigationState();
       };
 
       unsubscribeSnapshot = docRef.onSnapshot(
@@ -1544,7 +1546,62 @@
       document.getElementById("progressBar").style.width = pct + "%";
     }
 
-    function setStage(id) {
+    // Scroll & Stage Persistence Engine
+    let isRestoringScroll = false;
+
+    function saveNavigationState() {
+      if (!activeStage) return;
+      try {
+        sessionStorage.setItem("dankoe_active_stage", activeStage);
+        sessionStorage.setItem("dankoe_scroll_" + activeStage, String(window.scrollY));
+        if (history.replaceState) {
+          history.replaceState(null, "", "#" + activeStage);
+        }
+      } catch (e) {}
+    }
+
+    function restoreNavigationState() {
+      try {
+        const hash = window.location.hash ? window.location.hash.replace("#", "") : "";
+        const savedStage = hash || sessionStorage.getItem("dankoe_active_stage") || "command";
+        
+        if (titles[savedStage]) {
+          setStage(savedStage, true);
+        }
+
+        const savedScrollY = sessionStorage.getItem("dankoe_scroll_" + (savedStage || "command"));
+        if (savedScrollY !== null && !isNaN(savedScrollY)) {
+          const targetY = parseInt(savedScrollY, 10);
+          isRestoringScroll = true;
+
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: targetY, behavior: "instant" });
+              setTimeout(() => { isRestoringScroll = false; }, 150);
+            });
+          });
+        }
+      } catch (e) {
+        console.error("Failed to restore scroll navigation:", e);
+      }
+    }
+
+    window.addEventListener("scroll", () => {
+      if (isRestoringScroll) return;
+      clearTimeout(restoreNavigationState.timer);
+      restoreNavigationState.timer = setTimeout(() => {
+        if (activeStage) {
+          sessionStorage.setItem("dankoe_scroll_" + activeStage, String(window.scrollY));
+        }
+      }, 100);
+    });
+
+    window.addEventListener("beforeunload", () => {
+      saveNavigationState();
+    });
+
+    function setStage(id, preserveScroll = false) {
+      if (!titles[id]) return;
       document.querySelectorAll(".stage").forEach((stage) => stage.classList.toggle("active", stage.id === id));
       document.querySelectorAll(".nav button").forEach((button) => button.classList.toggle("active", button.dataset.stage === id));
       document.getElementById("stageTitle").textContent = titles[id][0];
@@ -1552,7 +1609,12 @@
       activeStage = id;
       if (id === "map") renderMap();
       scheduleAiAnalysis(300);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      saveNavigationState();
+
+      if (!preserveScroll) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
 
     function value(primary, fallback, empty = "Not answered yet") {
