@@ -1635,10 +1635,10 @@
 
     function wrapSvgText(targetId, text, maxChars, maxLines) {
       const node = document.getElementById(targetId);
+      if (!node) return;
       node.textContent = "";
       const words = text.replace(/\s+/g, " ").trim().split(" ");
       let line = "";
-      let y = 0;
       let lines = [];
       words.forEach((word) => {
         const next = line ? line + " " + word : word;
@@ -1655,8 +1655,7 @@
       lines.forEach((item, index) => {
         const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
         tspan.setAttribute("x", node.getAttribute("x"));
-        tspan.setAttribute("dy", index === 0 ? 0 : 20);
-        tspan.setAttribute("y", String(Number(node.getAttribute("y")) + y));
+        tspan.setAttribute("dy", index === 0 ? "0" : "1.3em");
         tspan.textContent = item;
         node.appendChild(tspan);
       });
