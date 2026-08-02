@@ -496,14 +496,20 @@
     }
 
     @media print {
-      .sidebar, .topbar, .map-toolbar, .toast { display: none; }
-      .app { display: block; }
-      body { background: white; color: black; }
+      body {
+        background: #070709 !important;
+        color: #f4f4f5 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .sidebar, .topbar, .map-toolbar, .toast { display: none !important; }
+      .app { display: block !important; }
       .stage { display: none !important; }
       #map.stage { display: block !important; }
-      .content { padding: 0; width: 100%; }
-      .map-shell, .summary div { border-color: #ccc; background: white; }
-      .summary p, .summary strong { color: #111; }
+      .content { padding: 0 !important; width: 100% !important; }
+      .map-shell { border-color: rgba(245,158,11,0.3) !important; background: #0c0d10 !important; }
+      .summary div { border-color: rgba(255,255,255,0.1) !important; background: rgba(18,19,22,0.95) !important; }
+      .summary p, .summary strong { color: #f4f4f5 !important; }
     }
 
     /* Redesigned Authentication & Profile Styling */
@@ -1006,7 +1012,8 @@
               </div>
               <div class="top-actions">
                 <button class="btn" id="refreshMapBtn">Refresh</button>
-                <button class="btn primary" id="printBtn">Print</button>
+                <button class="btn" id="printPdfBtn">Print PDF</button>
+                <button class="btn primary" id="exportPngBtn">Export PNG</button>
               </div>
             </div>
             <svg class="mindmap" viewBox="0 0 1180 680" role="img" aria-label="Mind map summary of your reset protocol answers">
@@ -1818,6 +1825,70 @@
       return text.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
     }
 
+    function exportMapAsPng() {
+      const svgElement = document.querySelector("svg.mindmap");
+      if (!svgElement) return;
+
+      showToast("Generating HD Dark PNG...");
+
+      const clonedSvg = svgElement.cloneNode(true);
+      const svgWidth = 1180;
+      const svgHeight = 680;
+
+      clonedSvg.setAttribute("width", String(svgWidth));
+      clonedSvg.setAttribute("height", String(svgHeight));
+      clonedSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+      const styleElement = document.createElement("style");
+      styleElement.textContent = `
+        svg { background-color: #0c0d10; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+        .connector { fill: none; stroke: rgba(245,158,11,0.35); stroke-width: 2px; stroke-dasharray: 4 4; }
+        .node rect { fill: #121316; stroke: rgba(255,255,255,0.12); stroke-width: 1px; rx: 12px; ry: 12px; }
+        .node.vision rect { stroke: #f59e0b; stroke-width: 2px; }
+        .node.anti rect { stroke: rgba(239,68,68,0.5); }
+        .node.rules rect { stroke: rgba(139,92,246,0.4); }
+        .node text { fill: #f4f4f5; font-size: 13px; font-weight: 500; }
+        .node text.small { fill: #a1a1aa; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+      `;
+      clonedSvg.insertBefore(styleElement, clonedSvg.firstChild);
+
+      const svgString = new XMLSerializer().serializeToString(clonedSvg);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      const scale = 2;
+      img.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = svgWidth * scale;
+        canvas.height = svgHeight * scale;
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#0c0d10";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+
+        const pngUrl = canvas.toDataURL("image/png");
+        const downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = "dankoe-reset-protocol-clarity-map.png";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(blobURL);
+        showToast("PNG Exported!");
+      };
+
+      img.onerror = function () {
+        showToast("PNG export failed");
+      };
+
+      img.src = blobURL;
+    }
+
     function exportJson() {
       saveState();
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -1840,7 +1911,8 @@
     document.getElementById("signOutBtnTop").addEventListener("click", logoutUser);
     document.getElementById("exportBtn").addEventListener("click", exportJson);
     document.getElementById("refreshMapBtn").addEventListener("click", () => { saveState(); renderMap(); });
-    document.getElementById("printBtn").addEventListener("click", () => window.print());
+    document.getElementById("printPdfBtn").addEventListener("click", () => window.print());
+    document.getElementById("exportPngBtn").addEventListener("click", exportMapAsPng);
     document.getElementById("clearBtn").addEventListener("click", () => {
       if (!confirm("Reset all saved answers and data?")) return;
       state = {};
