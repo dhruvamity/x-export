@@ -810,12 +810,22 @@
         <span>Continue with Google</span>
       </button>
 
-      <div id="authErrorBox" class="auth-error-box" style="display: none;"></div>
+      <div class="auth-divider" style="display: flex; align-items: center; gap: 12px; margin: 14px 0; color: #71717a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
+        <span style="flex: 1; height: 1px; background: rgba(255,255,255,0.08);"></span>
+        <span>or</span>
+        <span style="flex: 1; height: 1px; background: rgba(255,255,255,0.08);"></span>
+      </div>
+
+      <button class="btn-guest" id="guestModeBtn" style="width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); color: #e4e4e7; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <span>Continue in Guest Mode (Offline)</span>
+      </button>
+
+      <div id="authErrorBox" class="auth-error-box" style="display: none; margin-top: 12px;"></div>
 
       <div id="configWarningBox" class="config-warning" style="display: none;">
         <strong>Firebase Configuration Required</strong>
-        <span>Set your Firebase credentials in <code>firebase-config.js</code> or <code>.env</code>. You can also preview the portal in local test mode below.</span>
-        <button class="btn" id="guestModeBtn" style="width: 100%; margin-top: 10px; font-size: 12px;">Continue in Guest Mode (Local Storage)</button>
+        <span>Set your Firebase credentials in <code>firebase-config.js</code> or <code>.env</code> to enable cloud sync.</span>
       </div>
 
       <div class="auth-footer-note">

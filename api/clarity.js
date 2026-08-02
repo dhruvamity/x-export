@@ -8,10 +8,10 @@ export default async function handler(req, res) {
   const model = process.env.NVIDIA_MODEL || "nvidia/llama-3.3-nemotron-super-49b-v1.5";
   const baseUrl = process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1";
 
+  const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body || {});
+
   if (!apiKey) {
-    return res.status(530 || 503).json({
-      error: "Set NVIDIA_API_KEY in Vercel Environment Variables to enable AI analysis."
-    });
+    return res.status(200).json(generateHeuristicAnalysis(body));
   }
 
   try {
@@ -177,4 +177,63 @@ function parseJson(text) {
     const match = text.match(/\{[\s\S]*\}/);
     return match ? JSON.parse(match[0]) : {};
   }
+}
+
+function generateHeuristicAnalysis(body) {
+  const state = (body && body.state) || {};
+  const antivision = state.anti_vision || state.dissatisfaction || state.compressed_anti || "Constant distraction and unfulfilled potential.";
+  const vision = state.vision || state.compressed_vision || state.game_vision || "Building a high-leverage business with total time autonomy.";
+  const enemy = state.enemy || state.stuck_truth || "Autopilot habit of trade-off avoidance and comfort seeking.";
+  const mission = state.year_lens || state.game_year || "Achieve $10k/mo digital product revenue with 4 hours daily focus.";
+  const project = state.month_lens || state.game_month || "Complete core curriculum draft and sales page.";
+  const dailyLevers = state.daily_lens || state.game_daily || "1. 3 hrs deep work block before noon. 2. Zero social media before 2 PM. 3. Evening daily review.";
+  const constraints = state.game_constraints || "No multi-tasking, no checking notifications during deep work sessions.";
+
+  return sanitizeAiResponse({
+    reflection: `Your responses indicate a strong contrast between your current dissatisfaction ("${antivision.slice(0, 80)}...") and your desired state. Your actions reveal a struggle with autopilot avoidance patterns that disrupt high-leverage execution.`,
+    patterns: [
+      "Substituting shallow administrative activity for high-consequence creation.",
+      "Seeking temporary distraction whenever friction or creative difficulty arises.",
+      "Protecting status and safety by delaying public iteration."
+    ],
+    fears: [
+      "Fear of waste: worry that deep creative bets won't yield immediate validation.",
+      "Fear of exposure: fear that launching raw work will invite negative judgment."
+    ],
+    contradictions: [
+      "Desiring autonomous creative freedom while allowing low-value interruptions to dictate the schedule."
+    ],
+    hiddenGoals: [
+      "Unconscious goal of comfort preservation: staying busy to feel productive without risking failure."
+    ],
+    followUps: {
+      dissatisfaction: "What specific fear prevents you from eliminating this dissatisfaction today?",
+      anti_vision: "If nothing changes in 3 years, what exact daily regret will you carry?",
+      compressed_vision: "What is the single most intimidating milestone required to make this vision real?"
+    },
+    stageFocus: {
+      excavation: "Examine the root avoidance mechanism driving your main complaint.",
+      interrupts: "Notice the exact physical impulse right before you switch to a distraction.",
+      synthesis: "Compress your core insight into one non-negotiable rule.",
+      game: "Treat tomorrow as a single playable level with clear win criteria.",
+      map: "Use this map daily as a cybernetic feedback lens."
+    },
+    clarity: {
+      antiVision: antivision,
+      vision: vision,
+      enemy: enemy,
+      mission: mission,
+      project: project,
+      dailyLevers: dailyLevers,
+      constraints: constraints
+    },
+    tomorrowSchedule: [
+      { time: "07:30", action: "Hydration & 10-min silent planning alignment" },
+      { time: "08:00", action: "Block 1: Deep work on primary monthly project lever" },
+      { time: "11:00", action: "Timed interrupt check: evaluate focus vs avoidance" },
+      { time: "13:00", action: "Block 2: Systems, administration, and communication" },
+      { time: "17:00", action: "Evening review & lock daily levers for tomorrow" }
+    ],
+    mapSummary: `Target: ${mission.slice(0, 100)}. Core Lever: ${dailyLevers.slice(0, 100)}.`
+  });
 }
